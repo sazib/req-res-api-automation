@@ -54,12 +54,13 @@ jobs:
       - name: Run Playwright tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
         run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
-      - name: Upload Playwright report
+      - name: Upload Playwright blob report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-shard-${{ matrix.shardIndex }}
-          path: playwright-report/
+          name: blob-report-shard-${{ matrix.shardIndex }}
+          path: blob-report/
+          if-no-files-found: ignore
           retention-days: 30
 
       - name: Upload test results
@@ -89,11 +90,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Download all shard reports
+      - name: Download all shard blob reports
         uses: actions/download-artifact@v4
         with:
           path: all-reports/
-          pattern: playwright-report-*
+          pattern: blob-report-*
           merge-multiple: true
 
       - name: Merge reports
