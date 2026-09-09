@@ -1,0 +1,27 @@
+{
+  "name": "req-res-api-automation",
+  "version": "1.0.0",
+  "description": "API automation framework for ReqRes API",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:users": "npx playwright test tests/users/",
+    "test:orders": "npx playwright test tests/orders/",
+    "test:payments": "npx playwright test tests/payments/",
+    "test:headed": "npx playwright test --headed",
+    "test:debug": "npx playwright test --debug",
+    "test:report": "npx playwright show-report",
+    "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.52.0",
+    "@types/node": "^22.15.3",
+    "@typescript-eslint/eslint-plugin": "^8.70.0",
+    "@typescript-eslint/parser": "^8.70.0",
+    "dotenv": "^16.5.0",
+    "eslint": "^10.10.0",
+    "globals": "^17.12.0",
+    "typescript": "^5.8.3"
+  }
+}
