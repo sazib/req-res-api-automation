@@ -7,6 +7,10 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://reqres.in' }}
   API_KEY: ${{ secrets.API_KEY }}
@@ -106,3 +110,24 @@ jobs:
           name: playwright-report
           path: playwright-report
           retention-days: 30
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: playwright-report
+
+  deploy-report:
+    name: Deploy report to GitHub Pages
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+    needs: report
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

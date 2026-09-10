@@ -4,9 +4,12 @@ import { isValidEmail, isValidUrl } from "../../src/utils/helpers";
 
 test.describe("GET /api/users/{id} - Single user", () => {
   test("should return 200 with the requested user", async ({ usersClient }) => {
-    const response = await usersClient.getUser(2);
+    const list = await usersClient.listUsers();
+    const userId = list.data[0].id;
 
-    expect(response.data.id).toBe(2);
+    const response = await usersClient.getUser(userId);
+
+    expect(response.data.id).toBe(userId);
     expect(isValidEmail(response.data.email)).toBe(true);
     expect(response.data.first_name.length).toBeGreaterThan(0);
     expect(response.data.last_name.length).toBeGreaterThan(0);
@@ -14,13 +17,16 @@ test.describe("GET /api/users/{id} - Single user", () => {
     expect(response.support.url).toBeTruthy();
   });
 
-  test("should return the known Janet Weaver user for id 1", async ({ usersClient }) => {
-    const response = await usersClient.getUser(1);
+  test("should return a user matching the list data", async ({ usersClient }) => {
+    const list = await usersClient.listUsers();
+    const listUser = list.data[0];
 
-    expect(response.data.id).toBe(1);
-    expect(response.data.first_name).toBe("Janet");
-    expect(response.data.last_name).toBe("Weaver");
-    expect(response.data.email.toLowerCase()).toContain("janet");
+    const response = await usersClient.getUser(listUser.id);
+
+    expect(response.data.id).toBe(listUser.id);
+    expect(response.data.first_name).toBe(listUser.first_name);
+    expect(response.data.last_name).toBe(listUser.last_name);
+    expect(response.data.email).toBe(listUser.email);
   });
 
   test("should return 404 for a non-existent user", async ({ usersClient }) => {
