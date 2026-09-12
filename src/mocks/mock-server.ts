@@ -104,6 +104,8 @@ function cursorMeta(page: number, perPage: number, total: number) {
   };
 }
 
+let nextUserId = 7;
+
 const SCENARIOS = [
   { name: "rate-limited", url: "/agent/v1/scenarios/rate-limited", status_code: 429, description: "Rate limit", requires_paid_tier: false },
   { name: "server-error", url: "/agent/v1/scenarios/server-error", status_code: 500, description: "Generic 5xx", requires_paid_tier: true },
@@ -147,8 +149,8 @@ export function createMockApiServer(): http.Server {
       const body = await readBody(req);
       return json(res, 201, {
         ...body,
-        id: "7",
-        createdAt: "2026-09-09T12:00:00.000Z",
+        id: String(nextUserId++),
+        createdAt: new Date().toISOString(),
       });
     }
     const userMatch = pathname.match(/^\/api\/users\/(\d+)$/);
@@ -163,7 +165,7 @@ export function createMockApiServer(): http.Server {
         const body = await readBody(req);
         return json(res, 200, {
           ...body,
-          updatedAt: "2026-09-09T12:00:00.000Z",
+          updatedAt: new Date().toISOString(),
         });
       }
       if (method === "DELETE") {

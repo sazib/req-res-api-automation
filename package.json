@@ -10,6 +10,9 @@
     "test:headed": "npx playwright test --headed",
     "test:debug": "npx playwright test --debug",
     "test:report": "npx playwright show-report",
+    "test:mock": "USE_MOCK=true npx playwright test",
+    "mock": "tsx src/mocks/start-mock-server.ts",
+    "test:docker": "docker compose run --rm tests",
     "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
     "typecheck": "tsc --noEmit"
   },
@@ -22,6 +25,7 @@
     "dotenv": "^16.5.0",
     "eslint": "^10.10.0",
     "globals": "^17.12.0",
+    "tsx": "^4.19.0",
     "typescript": "^5.8.3"
   }
 }

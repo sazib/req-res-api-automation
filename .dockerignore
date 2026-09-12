@@ -1,0 +1,29 @@
+# VCS
+.git
+.gitignore
+
+# Dependencies
+node_modules
+dist
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Test output
+test-results
+playwright-report
+blob-report
+all-reports
+
+# TypeScript
+*.tsbuildinfo
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+
+# Logs
+*.log

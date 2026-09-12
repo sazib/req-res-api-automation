@@ -1,0 +1,25 @@
+services:
+  # Local mock API server — lets the whole suite run offline and deterministically
+  # without an API key. Mirrors the ReqRes endpoints used by the tests.
+  mock-api:
+    build: .
+    command: npm run mock
+    environment:
+      MOCK_HOST: "0.0.0.0"
+      MOCK_PORT: "3001"
+    ports:
+      - "3001:3001"
+
+  # Runs the test suite against the mock API. Override USE_MOCK / MOCK_BASE_URL
+  # and pass an API key to run against the real ReqRes API instead.
+  tests:
+    build: .
+    command: npm test
+    environment:
+      USE_MOCK: "true"
+      MOCK_BASE_URL: "http://mock-api:3001"
+    depends_on:
+      - mock-api
+    volumes:
+      - ./playwright-report:/app/playwright-report
+      - ./test-results:/app/test-results

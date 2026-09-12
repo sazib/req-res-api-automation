@@ -6,10 +6,18 @@ on:
   pull_request:
     branches: [main, master]
   workflow_dispatch:
+    inputs:
+      run_mode:
+        description: >-
+          mock = offline against the bundled mock API (no secrets needed);
+          live = against the real ReqRes API (requires API_KEY secret);
+          auto = live when API_KEY is configured, otherwise mock.
+        type: choice
+        options: [auto, mock, live]
+        default: auto
 
 env:
-  API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://reqres.in' }}
-  API_KEY: ${{ secrets.API_KEY }}
+  IMAGE_NAME: req-res-api-automation
 
 jobs:
   test:
@@ -25,34 +33,76 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build the image once per shard. Layers come from the GHA cache, so
+      # shards 2-4 reuse everything built by shard 1 (no registry needed).
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
         with:
-          node-version: 20
-          cache: npm
+          context: .
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:local
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
+      # Default to the offline mock (green without any secrets). Fall back is
+      # the live API only when an API_KEY secret is present or live is forced.
+      - name: Resolve run mode
+        id: mode
+        env:
+          API_KEY: ${{ secrets.API_KEY }}
+        run: |
+          MODE="${{ github.event.inputs.run_mode || 'auto' }}"
+          if [ -z "$MODE" ] || [ "$MODE" = "auto" ]; then
+            if [ -n "$API_KEY" ]; then
+              MODE=live
+            else
+              MODE=mock
+            fi
+          fi
+          echo "run_mode=$MODE" >> "$GITHUB_OUTPUT"
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Create artifact directories
+        run: mkdir -p blob-report test-results
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+      # Isolate the mock container and the test containers on a shared bridge
+      # network so they can talk to each other by service name.
+      - name: Create Docker network
+        run: docker network create test-net
 
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Lint
-        run: npm run lint
+      - name: Start mock API server (offline mode)
+        if: steps.mode.outputs.run_mode == 'mock'
+        run: >
+          docker run -d --rm --name mock-api
+          --network test-net
+          -e MOCK_HOST=0.0.0.0
+          -e MOCK_PORT=3001
+          ${{ env.IMAGE_NAME }}:local
+          npm run mock
 
       - name: Run Playwright tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
-        run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        env:
+          USE_MOCK: ${{ steps.mode.outputs.run_mode == 'mock' && 'true' || 'false' }}
+        run: >
+          docker run --rm
+          --network test-net
+          -e CI
+          -e API_BASE_URL
+          -e API_KEY
+          -e TEST_ENV
+          -e USE_MOCK="$USE_MOCK"
+          -e MOCK_BASE_URL=http://mock-api:3001
+          -v "${{ github.workspace }}/blob-report:/app/blob-report"
+          -v "${{ github.workspace }}/test-results:/app/test-results"
+          ${{ env.IMAGE_NAME }}:local
+          npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+
+      - name: Stop mock API server
+        if: ${{ always() && steps.mode.outputs.run_mode == 'mock' }}
+        run: docker rm -f mock-api || true
 
       - name: Upload Playwright blob report
         if: ${{ !cancelled() }}

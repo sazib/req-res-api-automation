@@ -1,5 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 import dotenv from "dotenv";
+import { getEnvironment } from "./src/config/environments";
 
 dotenv.config();
 
@@ -17,7 +18,7 @@ export default defineConfig({
     timeout: 10_000,
   },
   use: {
-    baseURL: process.env.API_BASE_URL || "https://reqres.in",
+    baseURL: getEnvironment().baseUrl,
     extraHTTPHeaders: {
       Accept: "application/json",
       "Content-Type": "application/json",
